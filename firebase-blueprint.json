@@ -1,0 +1,150 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public profile and role record for a LokSudhar portal user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "role": { "type": "string", "enum": ["citizen", "worker", "admin"] },
+        "department": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated private PII (email, phone, address) for a portal user.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 160 },
+        "phone": { "type": "string", "maxLength": 24 },
+        "state": { "type": "string", "maxLength": 80 },
+        "district": { "type": "string", "maxLength": 80 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "updatedAt"]
+    },
+    "Grievance": {
+      "title": "Grievance",
+      "description": "Public citizen grievance submitted on LokSudhar with geo-location and evidence.",
+      "type": "object",
+      "properties": {
+        "referenceNumber": { "type": "string", "minLength": 6, "maxLength": 32, "pattern": "^[A-Z0-9\\-]+$" },
+        "citizenUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "citizenName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "state": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "district": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "city": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "department": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "title": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "description": { "type": "string", "minLength": 10, "maxLength": 3000 },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "addressLabel": { "type": "string", "maxLength": 250 },
+        "photoCount": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["Registered", "Assigned", "Dispatched", "In Progress", "Resolved", "Closed"]
+        },
+        "assignedDepartment": { "type": "string", "maxLength": 120 },
+        "assignedWorkerId": { "type": "string", "maxLength": 128 },
+        "assignedWorkerName": { "type": "string", "maxLength": 120 },
+        "resolutionNotes": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "referenceNumber",
+        "citizenUid",
+        "citizenName",
+        "state",
+        "district",
+        "city",
+        "department",
+        "category",
+        "title",
+        "description",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GrievanceHistoryEntry": {
+      "title": "GrievanceHistoryEntry",
+      "description": "Immutable status transition log entry for a grievance.",
+      "type": "object",
+      "properties": {
+        "grievanceId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "status": { "type": "string", "enum": ["Registered", "Assigned", "Dispatched", "In Progress", "Resolved", "Closed"] },
+        "remarks": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "updatedByUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "updatedByName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "updatedByRole": { "type": "string", "enum": ["citizen", "worker", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["grievanceId", "status", "remarks", "updatedByUid", "updatedByName", "updatedByRole", "createdAt"]
+    },
+    "WorkerRecord": {
+      "title": "WorkerRecord",
+      "description": "Department / field officer profile for grievance assignment.",
+      "type": "object",
+      "properties": {
+        "workerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "designation": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "department": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "district": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["workerId", "name", "designation", "department", "district", "createdAt", "updatedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Official public service notice or circular displayed on the portal.",
+      "type": "object",
+      "properties": {
+        "circularNo": { "type": "string", "minLength": 2, "maxLength": 64 },
+        "title": { "type": "string", "minLength": 4, "maxLength": 240 },
+        "department": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "summary": { "type": "string", "minLength": 4, "maxLength": 1000 },
+        "publishedDate": { "type": "string", "maxLength": 40 },
+        "isImportant": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["circularNo", "title", "department", "summary", "publishedDate", "isImportant", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Public user profile and non-privileged role metadata."
+    },
+    "/users/{userId}/private/info": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Private PII isolated from public reads."
+    },
+    "/grievances/{grievanceId}": {
+      "schema": { "$ref": "#/entities/Grievance" },
+      "description": "Citizen grievance records and redressal status."
+    },
+    "/grievances/{grievanceId}/history/{entryId}": {
+      "schema": { "$ref": "#/entities/GrievanceHistoryEntry" },
+      "description": "Immutable grievance status timeline entries."
+    },
+    "/workers/{workerId}": {
+      "schema": { "$ref": "#/entities/WorkerRecord" },
+      "description": "Field officer directory for department assignments."
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Public circulars and announcements."
+    }
+  }
+}

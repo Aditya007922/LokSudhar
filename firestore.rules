@@ -1,0 +1,268 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && request.auth.token.email == 'vishwanagar22@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'role', 'department', 'createdAt', 'updatedAt'])
+        && data.uid is string && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.role in ['citizen', 'worker', 'admin']
+        && (!data.keys().hasAny(['department']) || (data.department is string && data.department.size() <= 120))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll(['uid', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'phone', 'state', 'district', 'updatedAt'])
+        && data.uid is string && isValidId(data.uid)
+        && (!data.keys().hasAny(['email']) || (data.email is string && data.email.size() <= 160))
+        && (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 24))
+        && (!data.keys().hasAny(['state']) || (data.state is string && data.state.size() <= 80))
+        && (!data.keys().hasAny(['district']) || (data.district is string && data.district.size() <= 80))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidGrievance(data) {
+      return data.keys().hasAll([
+        'referenceNumber', 'citizenUid', 'citizenName', 'state', 'district', 'city',
+        'department', 'category', 'title', 'description', 'status', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'referenceNumber', 'citizenUid', 'citizenName', 'state', 'district', 'city',
+        'department', 'category', 'title', 'description', 'latitude', 'longitude',
+        'addressLabel', 'photoCount', 'status', 'assignedDepartment', 'assignedWorkerId',
+        'assignedWorkerName', 'resolutionNotes', 'createdAt', 'updatedAt'
+      ])
+      && data.referenceNumber is string && data.referenceNumber.size() >= 6 && data.referenceNumber.size() <= 32
+      && data.referenceNumber.matches('^[A-Z0-9\\-]+$')
+      && data.citizenUid is string && data.citizenUid.size() >= 1 && data.citizenUid.size() <= 128
+      && data.citizenName is string && data.citizenName.size() >= 1 && data.citizenName.size() <= 120
+      && data.state is string && data.state.size() >= 2 && data.state.size() <= 80
+      && data.district is string && data.district.size() >= 2 && data.district.size() <= 80
+      && data.city is string && data.city.size() >= 2 && data.city.size() <= 80
+      && data.department is string && data.department.size() >= 2 && data.department.size() <= 120
+      && data.category is string && data.category.size() >= 2 && data.category.size() <= 120
+      && data.title is string && data.title.size() >= 3 && data.title.size() <= 200
+      && data.description is string && data.description.size() >= 10 && data.description.size() <= 3000
+      && data.status in ['Registered', 'Assigned', 'Dispatched', 'In Progress', 'Resolved', 'Closed']
+      && (!data.keys().hasAny(['latitude']) || data.latitude is number)
+      && (!data.keys().hasAny(['longitude']) || data.longitude is number)
+      && (!data.keys().hasAny(['addressLabel']) || (data.addressLabel is string && data.addressLabel.size() <= 250))
+      && (!data.keys().hasAny(['photoCount']) || (data.photoCount is number && data.photoCount >= 0 && data.photoCount <= 5))
+      && (!data.keys().hasAny(['assignedDepartment']) || (data.assignedDepartment is string && data.assignedDepartment.size() <= 120))
+      && (!data.keys().hasAny(['assignedWorkerId']) || (data.assignedWorkerId is string && data.assignedWorkerId.size() <= 128))
+      && (!data.keys().hasAny(['assignedWorkerName']) || (data.assignedWorkerName is string && data.assignedWorkerName.size() <= 120))
+      && (!data.keys().hasAny(['resolutionNotes']) || (data.resolutionNotes is string && data.resolutionNotes.size() <= 2000))
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidHistoryEntry(data, grievanceId) {
+      return data.keys().hasAll(['grievanceId', 'status', 'remarks', 'updatedByUid', 'updatedByName', 'updatedByRole', 'createdAt'])
+        && data.keys().hasOnly(['grievanceId', 'status', 'remarks', 'updatedByUid', 'updatedByName', 'updatedByRole', 'createdAt'])
+        && data.grievanceId == grievanceId
+        && data.status in ['Registered', 'Assigned', 'Dispatched', 'In Progress', 'Resolved', 'Closed']
+        && data.remarks is string && data.remarks.size() >= 1 && data.remarks.size() <= 1000
+        && data.updatedByUid is string && data.updatedByUid == request.auth.uid
+        && data.updatedByName is string && data.updatedByName.size() >= 1 && data.updatedByName.size() <= 120
+        && data.updatedByRole in ['citizen', 'worker', 'admin']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidWorker(data) {
+      return data.keys().hasAll(['workerId', 'name', 'designation', 'department', 'district', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['workerId', 'uid', 'name', 'designation', 'department', 'district', 'createdAt', 'updatedAt'])
+        && isValidId(data.workerId)
+        && (!data.keys().hasAny(['uid']) || (data.uid is string && data.uid.size() <= 128))
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 120
+        && data.designation is string && data.designation.size() >= 2 && data.designation.size() <= 120
+        && data.department is string && data.department.size() >= 2 && data.department.size() <= 120
+        && data.district is string && data.district.size() >= 2 && data.district.size() <= 80
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAnnouncement(data) {
+      return data.keys().hasAll(['circularNo', 'title', 'department', 'summary', 'publishedDate', 'isImportant', 'createdAt'])
+        && data.keys().hasOnly(['circularNo', 'title', 'department', 'summary', 'publishedDate', 'isImportant', 'createdAt'])
+        && data.circularNo is string && data.circularNo.size() >= 2 && data.circularNo.size() <= 64
+        && data.title is string && data.title.size() >= 4 && data.title.size() <= 240
+        && data.department is string && data.department.size() >= 2 && data.department.size() <= 120
+        && data.summary is string && data.summary.size() >= 4 && data.summary.size() <= 1000
+        && data.publishedDate is string && data.publishedDate.size() <= 40
+        && data.isImportant is bool
+        && data.createdAt is timestamp;
+    }
+
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if false;
+      allow create, update, delete: if isValidId(adminId) && isBootstrappedAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == userId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && ((isOwner(userId) && incoming().role == 'citizen') || isAdmin());
+      allow update: if isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']))
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /private/info {
+        allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow list: if false;
+        allow create: if isValidId(userId)
+          && (isOwner(userId) || isAdmin())
+          && isValidUserPrivateInfo(incoming())
+          && incoming().uid == userId
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId)
+          && (isOwner(userId) || isAdmin())
+          && isValidUserPrivateInfo(incoming())
+          && incoming().uid == existing().uid
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'phone', 'state', 'district', 'updatedAt']);
+        allow delete: if isValidId(userId) && isAdmin();
+      }
+    }
+
+    match /grievances/{grievanceId} {
+      allow get: if isValidId(grievanceId) && (
+        isAdmin() ||
+        (isSignedIn() && (existing().citizenUid == request.auth.uid || existing().assignedWorkerId == request.auth.uid))
+      );
+      allow list: if isBootstrappedAdmin() || (
+        isSignedIn() && (existing().citizenUid == request.auth.uid || existing().assignedWorkerId == request.auth.uid)
+      );
+      allow create: if isValidId(grievanceId)
+        && isSignedIn()
+        && isValidGrievance(incoming())
+        && incoming().citizenUid == request.auth.uid
+        && incoming().status == 'Registered'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(grievanceId)
+        && isSignedIn()
+        && isValidGrievance(incoming())
+        && incoming().referenceNumber == existing().referenceNumber
+        && incoming().citizenUid == existing().citizenUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().status != 'Closed' &&
+            existing().assignedWorkerId == request.auth.uid &&
+            incoming().status in ['Dispatched', 'In Progress', 'Resolved'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'resolutionNotes', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(grievanceId) && isAdmin();
+
+      match /history/{entryId} {
+        allow get: if isValidId(grievanceId) && isValidId(entryId) && (
+          isAdmin() ||
+          (isSignedIn() && (
+            get(/databases/$(database)/documents/grievances/$(grievanceId)).data.citizenUid == request.auth.uid ||
+            get(/databases/$(database)/documents/grievances/$(grievanceId)).data.assignedWorkerId == request.auth.uid
+          ))
+        );
+        allow list: if isBootstrappedAdmin() || (
+          isSignedIn() && existing().updatedByUid == request.auth.uid
+        );
+        allow create: if isValidId(grievanceId) && isValidId(entryId)
+          && isSignedIn()
+          && exists(/databases/$(database)/documents/grievances/$(grievanceId))
+          && isValidHistoryEntry(incoming(), grievanceId)
+          && incoming().createdAt == request.time
+          && (
+            isAdmin() ||
+            (incoming().updatedByRole == 'citizen' && get(/databases/$(database)/documents/grievances/$(grievanceId)).data.citizenUid == request.auth.uid) ||
+            (incoming().updatedByRole == 'worker' && get(/databases/$(database)/documents/grievances/$(grievanceId)).data.assignedWorkerId == request.auth.uid)
+          );
+        allow update, delete: if false;
+      }
+    }
+
+    match /workers/{workerId} {
+      allow get: if isValidId(workerId) && isSignedIn();
+      allow list: if isBootstrappedAdmin();
+      allow create: if isValidId(workerId)
+        && isAdmin()
+        && isValidWorker(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(workerId)
+        && isAdmin()
+        && isValidWorker(incoming())
+        && incoming().workerId == existing().workerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(workerId) && isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow get: if isValidId(announcementId);
+      allow list: if true;
+      allow create: if isValidId(announcementId)
+        && isAdmin()
+        && isValidAnnouncement(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(announcementId)
+        && isAdmin()
+        && isValidAnnouncement(incoming())
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isValidId(announcementId) && isAdmin();
+    }
+  }
+}

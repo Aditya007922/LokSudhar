@@ -1,11 +1,18 @@
-<div align="center">
+# LokSudhar (लोक सुधार) — Citizen Grievance Redressal Portal
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+**Tagline:** शिकायत आपकी, समाधान प्रशासन का।  
+**Portal Identity:** Citizen Grievance Redressal Portal *(Independent Public-Service Prototype)*
 
-  <h1>Built with AI Studio</h2>
+> **Disclaimer:** LokSudhar (लोक सुधार) is an independent civic-technology prototype designed to demonstrate transparent public grievance filing, tracking, and departmental resolution workflows. It is not officially affiliated with any Government Ministry, State Authority, or Municipal Corporation.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Core Modules
+- **Citizen Portal**: Bilingual (English / हिन्दी) interface, accessibility controls (`A- / A / A+`, High Contrast), Google Sign-In via Firebase Authentication, geo-tagged complaint submission with Leaflet maps, photograph evidence upload, and unique Reference Number receipts (`LKS-2026-XXXXXX`).
+- **Grievance Tracking**: Real-time complaint status lookup by Reference Number with departmental assignment, Leaflet location pin, resolution evidence photos, and live audit timeline via Socket.IO.
+- **Admin Portal**: Secure administrator login, grievance register filtering, department & field officer assignment, status updates, evidence review, and printable/CSV reports.
+- **Department & Field Officer Portal**: Assigned grievance queue, interactive site map, progress stage updates, and completion photograph uploads.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+## Running Locally
+1. Copy `.env.example` to `.env` and configure optional `MONGODB_URI`, `ADMIN_PASSCODE`, or `WORKER_PASSCODE` secrets (or use the inline first-run claim setup in the Admin/Department portals).
+2. Install dependencies: `npm install`
+3. Start development server on port 3000: `npm run dev`
+4. Build production bundle: `npm run build`

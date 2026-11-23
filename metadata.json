@@ -1,0 +1,10 @@
+{
+  "name": "Remix LokSudhar (लोक सुधार) — Citizen Grievance Redressal Portal",
+  "description": "LokSudhar (लोक सुधार) — शिकायत आपकी, समाधान प्रशासन का। An independent citizen grievance redressal prototype portal featuring online complaint filing, live tracking, geospatial mapping, and department/field-officer administration.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
